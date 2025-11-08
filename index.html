@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Surprise — For My Computer Teacher</title>
+<style>
+  :root{
+    --bg1:#0f1724; --bg2:#071a2a; --card:#0b1220;
+    --accent:#7ee7c7; --muted:#9fb0c2; --glass:rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+  html,body{height:100%;margin:0}
+  body{
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#0b1020 0%, #102a44 50%, #2b2a66 100%);
+    overflow:hidden;color:#eaf6f1;
+  }
+
+  /* animated soft gradient overlay */
+  .bg-animate{
+    position:fixed;inset:-30%;filter:blur(60px);opacity:.55;
+    background:linear-gradient(120deg,#3a0ca3,#4361ee,#4cc9f0,#7b2cbf);
+    background-size:300% 300%;animation:shift 14s linear infinite;mix-blend-mode:overlay;
+  }
+  @keyframes shift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+  .shell{
+    width:min(980px,96vw);max-width:980px;padding:22px;border-radius:16px;
+    backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.04);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: 0 10px 40px rgba(2,6,23,0.6);
+    position:relative; z-index:2;
+  }
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  header h1{font-size:18px;margin:0}
+  .sub{color:var(--muted);font-size:13px}
+
+  /* center area */
+  .stage{display:none;padding:22px;text-align:center}
+  .stage.active{display:block;animation:fadeUp .5s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  button.btn{
+    background:linear-gradient(180deg,var(--accent), #3ee0b3);color:#012; border:none;padding:10px 18px;border-radius:12px;
+    font-weight:600;cursor:pointer;margin-top:14px;box-shadow:0 8px 24px rgba(30,200,160,0.08);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  button.btn:active{transform:scale(.98)}
+  .small{padding:8px 12px;border-radius:10px;font-weight:600}
+
+  .gif{
+    display:block;margin:14px auto;border-radius:12px;max-width:220px;width:60%;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  }
+
+  /* Memory game */
+  .memory-grid{display:grid;grid-template-columns:repeat(4,84px);gap:12px;justify-content:center;margin-top:18px}
+  .card{
+    width:84px;height:84px;border-radius:12px;background:rgba(255,255,255,0.04);display:flex;
+    align-items:center;justify-content:center;font-size:34px;cursor:pointer;user-select:none;
+    transition:transform .28s ease, background .28s ease, box-shadow .18s;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.5);
+  }
+  .card.flipped{background:linear-gradient(180deg,#a9fbd6,#6ee7c7);color:#021;transform:scale(1.02);}
+
+  .meta-row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px;color:var(--muted)}
+
+  /* Balloon game area */
+  #balloonStage{position:relative;height:420px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));margin-top:12px;overflow:hidden}
+  .balloon{
+    position:absolute; bottom:-120px; width:60px; height:84px; border-radius:50% 50% 46% 46%/60% 60% 40% 40%;
+    box-shadow:0 8px 18px rgba(0,0,0,0.45);
+    display:flex;align-items:center;justify-content:center;font-size:26px;color:#012; cursor:pointer;
+    transform-origin:center;
+    animation:rise linear forwards;
+  }
+  @keyframes rise{0%{transform:translateY(0) scale(1)} 100%{transform:translateY(-120vh) scale(.9);opacity:0}}
+
+  /* popup & final */
+  .modal{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,6,12,0.6);
+    visibility:hidden;opacity:0;transition:opacity .28s, visibility .28s;z-index:40;
+  }
+  .modal.show{visibility:visible;opacity:1}
+  .modal-card{background:#071225;padding:20px 26px;border-radius:14px;text-align:center;border:1px solid rgba(110,231,183,0.08);min-width:280px}
+  .final{padding:24px 18px}
+
+  footer{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
+  .credits{color:var(--muted);font-size:14px;margin-top:8px}
+
+  /* responsive */
+  @media (max-width:640px){
+    .memory-grid{grid-template-columns:repeat(4,62px);gap:8px}
+    .card{width:62px;height:62px;font-size:24px;border-radius:10px}
+    #balloonStage{height:320px}
+    .gif{max-width:160px}
+  }
+</style>
+</head>
+<body>
+  <div class="bg-animate"></div>
+
+  <div class="shell" role="main" aria-labelledby="title">
+    <header>
+      <div>
+        <h1 id="title">A Surprise for my Computer Teacher</h1>
+        <div class="sub">A playful, interactive little experience — made by Sarib</div>
+      </div>
+      <div style="text-align:right">
+        <div class="sub">Open this on your teacher's device for the surprise ✨</div>
+      </div>
+    </header>
+
+    <!-- STAGE 1: ASK -->
+    <section id="stage1" class="stage active" aria-live="polite">
+      <h2>👋 Hello!</h2>
+      <p class="sub">Are you my computer teacher?</p>
+      <button class="btn" id="yesBtn">Yes 😄</button>
+      <img class="gif" src="https://media.tenor.com/CeYbR0JZVfsAAAAM/cute-hello.gif" alt="hello gif">
+    </section>
+
+    <!-- STAGE 2: I knew it -->
+    <section id="stage2" class="stage">
+      <h2>😎 I knew it!</h2>
+      <p class="sub">You can tell by your coding aura ✨</p>
+      <button class="btn" id="next2">Next ➜</button>
+      <img class="gif" src="https://media.tenor.com/hU6dlcQOV8kAAAAM/clapping-happy.gif" alt="clapping gif">
+    </section>
+
+    <!-- STAGE 3: favourite student -->
+    <section id="stage3" class="stage">
+      <h2>😏 I know I'm your favourite student</h2>
+      <p class="sub">But let's make it fun — a couple of quick challenges!</p>
+      <button class="btn" id="next3">Let's go 🎮</button>
+      <img class="gif" src="https://media.tenor.com/dR36sZ9Jz6sAAAAM/smirk-smiling.gif" alt="smirk gif">
+    </section>
+
+    <!-- STAGE 4: Memory (Easier: 4 pairs) -->
+    <section id="stage4" class="stage">
+      <h2>🧠 Memory Match — Easy Mode</h2>
+      <p class="sub">Find <strong>4 pairs</strong>. Flip sound & chime when you finish.</p>
+      <div class="memory-grid" id="memoryGrid" role="grid" aria-label="Memory cards"></div>
+
+      <div class="meta-row">
+        <div>Pairs: <strong id="memScore">0</strong>/4</div>
+        <div>|</div>
+        <div>Attempts: <strong id="memAttempts">0</strong></div>
+        <div>|</div>
+        <div><button class="small" id="memReset">Restart</button></div>
+      </div>
+
+      <img class="gif" src="https://media.tenor.com/7x0l0YkVnZwAAAAM/oh-wow-wow.gif" alt="wow gif">
+    </section>
+
+    <!-- STAGE 5: Balloon pop (visual only, no pop sound) -->
+    <section id="stage5" class="stage">
+      <h2>🎈 Pop the Balloons</h2>
+      <p class="sub">Goal: Pop <strong>7</strong> balloons. (2 spawn per second)</p>
+
+      <div id="balloonStage" aria-live="polite" aria-atomic="true"></div>
+
+      <div class="meta-row" style="margin-top:12px">
+        <div>Balloon Score: <strong id="balloonScore">0</strong>/7</div>
+        <div>|</div>
+        <div><button class="small" id="balloonReset">Restart Balloons</button></div>
+      </div>
+
+      <img class="gif" src="https://media.tenor.com/US6vByRqvIUAAAAM/balloon-float.gif" alt="balloon gif">
+    </section>
+
+    <!-- FINAL stage -->
+    <section id="stageFinal" class="stage">
+      <div class="final">
+        <h2>💖 You are the best computer teacher!! 💖</h2>
+        <img class="gif" src="https://media.tenor.com/8x6eZ3DbrDgAAAAM/teacher-thank-you.gif" alt="teacher thanks gif">
+        <div class="credits">Made by Sarib</div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="sub">Tip: full-screen this page for the best surprise 😉</div>
+    </footer>
+  </div>
+
+  <!-- modal for congrats / transitions -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-card" id="modalCard">
+      <h3 id="modalTitle">🎉 Great!</h3>
+      <p id="modalText" class="sub">Nice job — moving on...</p>
+      <img id="modalGif" class="gif" src="https://media.tenor.com/y2JXkY1pXkwAAAAM/congratulations-congrats.gif" alt="congrats gif">
+    </div>
+  </div>
+
+<script>
+/* -------------------------
+   SOUND (WebAudio synth, no external files)
+   - playClick() short click
+   - playChime() pleasant chime on wins
+   - playApplause() small applause-like shimmer
+   - background music: soft ambient loop (oscillators + gain)
+   ------------------------- */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx, bgGain;
+
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx = new AudioCtx();
+    // background gentle ambient
+    bgGain = audioCtx.createGain(); bgGain.gain.value = 0.035; bgGain.connect(audioCtx.destination);
+
+    // create two slow oscillators for a calm ambient chord
+    const osc1 = audioCtx.createOscillator(); osc1.type='sine'; osc1.frequency.value = 110; // A2
+    const osc2 = audioCtx.createOscillator(); osc2.type='sine'; osc2.frequency.value = 176; // F#3
+    const osc3 = audioCtx.createOscillator(); osc3.type='sine'; osc3.frequency.value = 220; // A3
+
+    const g1 = audioCtx.createGain(); g1.gain.value = 0.0;
+    const g2 = audioCtx.createGain(); g2.gain.value = 0.0;
+    const g3 = audioCtx.createGain(); g3.gain.value = 0.0;
+
+    osc1.connect(g1); g1.connect(bgGain);
+    osc2.connect(g2); g2.connect(bgGain);
+    osc3.connect(g3); g3.connect(bgGain);
+
+    // slow LFO to raise/lower amplitude for organic feel
+    const lfo = audioCtx.createOscillator(); lfo.frequency.value = 0.07; // slow
+    const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0.3;
+    lfo.connect(lfoGain);
+    lfoGain.connect(g1.gain); // modulate g1's gain (subtle)
+    lfoGain.connect(g2.gain);
+    lfoGain.connect(g3.gain);
+
+    // set base gains
+    g1.gain.setValueAtTime(0.02, audioCtx.currentTime);
+    g2.gain.setValueAtTime(0.015, audioCtx.currentTime);
+    g3.gain.setValueAtTime(0.01, audioCtx.currentTime);
+
+    osc1.start(); osc2.start(); osc3.start(); lfo.start();
+
+    // gently ramp the bgGain from 0 to target
+    bgGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    bgGain.gain.linearRampToValueAtTime(0.035, audioCtx.currentTime + 1.2);
+  }
+}
+
+function playClick(){
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(); o.type='triangle'; o.frequency.value = 700;
+  const g = audioCtx.createGain(); g.gain.value = 0.0015;
+  o.connect(g); g.connect(audioCtx.destination);
+  g.gain.setValueAtTime(0.0015,t); g.gain.exponentialRampToValueAtTime(0.00001, t+0.12);
+  o.start(); o.stop(t+0.13);
+}
+function playChime(){
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const baseFreq = 660;
+  // small chord
+  [1, 1.26, 1.5].forEach((mul,i)=>{
+    const o = audioCtx.createOscillator(); o.type='sine'; o.frequency.value = baseFreq*mul;
+    const g = audioCtx.createGain(); g.gain.value = 0.0008;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0008, t + i*0.02);
+    g.gain.exponentialRampToValueAtTime(0.00001, t + 0.9);
+    o.start(t + i*0.02); o.stop(t + 0.95);
+  });
+}
+function playApplause(){
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  // emulate applause with short random clicks by noise bursts
+  for(let i=0;i<8;i++){
+    const o = audioCtx.createOscillator(); o.type='triangle';
+    const freq = 300 + Math.random()*800;
+    o.frequency.value = freq;
+    const g = audioCtx.createGain(); g.gain.value = 0.0006 + Math.random()*0.001;
+    o.connect(g); g.connect(audioCtx.destination);
+    const start = t + 0.02*i;
+    g.gain.setValueAtTime(g.gain.value, start);
+    g.gain.exponentialRampToValueAtTime(0.00001, start + 0.2 + Math.random()*0.08);
+    o.start(start); o.stop(start + 0.22 + Math.random()*0.12);
+  }
+}
+
+/* -------------------------
+   UI Flow & games
+   ------------------------- */
+const stages = ['stage1','stage2','stage3','stage4','stage5','stageFinal'];
+function showStage(id){
+  stages.forEach(s => document.getElementById(s).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* attach basic interactions */
+document.getElementById('yesBtn').addEventListener('click', () => {
+  playClick(); // small click sound
+  // resume audio context on user gesture
+  try{ if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }catch(e){}
+  showStage('stage2');
+  playApplause(); // small applause to celebrate
+});
+
+document.getElementById('next2').addEventListener('click', ()=>{ playClick(); showStage('stage3'); });
+document.getElementById('next3').addEventListener('click', ()=>{ playClick(); showStage('stage4'); initMemory(); });
+
+/* -------------------------
+   MEM GAME (4 pairs easy)
+   ------------------------- */
+const emojis = ['🐶','🐱','🦊','🐻']; // 4 pairs
+const memoryGrid = document.getElementById('memoryGrid');
+let memFirst=null, memSecond=null, memLock=false, memPairs=0, memAttempts=0;
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+
+function initMemory(){
+  memFirst=memSecond=null; memLock=false; memPairs=0; memAttempts=0;
+  document.getElementById('memScore').textContent = memPairs;
+  document.getElementById('memAttempts').textContent = memAttempts;
+  memoryGrid.innerHTML='';
+  const arr = shuffle([...emojis, ...emojis]);
+  arr.forEach((icon, idx)=>{
+    const d = document.createElement('div');
+    d.className='card'; d.dataset.icon = icon;
+    d.setAttribute('role','button'); d.setAttribute('aria-label','card');
+    d.addEventListener('click', ()=> memFlip(d));
+    memoryGrid.appendChild(d);
+  });
+  // small GIF refresh
+  document.querySelector('#stage4 .gif').src = 'https://media.tenor.com/7x0l0YkVnZwAAAAM/oh-wow-wow.gif';
+}
+
+document.getElementById('memReset').addEventListener('click', ()=>{ playClick(); initMemory(); });
+
+function memFlip(card){
+  if(memLock || card.classList.contains('flipped')) return;
+  if(!audioCtx) ensureAudio();
+  playClick();
+  card.textContent = card.dataset.icon;
+  card.classList.add('flipped');
+  if(!memFirst){ memFirst = card; return; }
+  memSecond = card;
+  memAttempts++; document.getElementById('memAttempts').textContent = memAttempts;
+  memLock = true;
+  if(memFirst.dataset.icon === memSecond.dataset.icon){
+    memPairs++; document.getElementById('memScore').textContent = memPairs;
+    memFirst = memSecond = null; memLock=false;
+    playChime();
+    // small celebration GIF update
+    document.querySelector('#stage4 .gif').src = 'https://media.tenor.com/y6cXG8bXg9IAAAAM/celebrate-cheer.gif';
+    if(memPairs === 4){
+      // finished memory: show modal then go next
+      showModal('Amazing! You matched all pairs!', 'Nice memory! On to balloons...', 'https://media.tenor.com/y2JXkY1pXkwAAAAM/congratulations-congrats.gif', ()=> {
+        hideModal();
+        showStage('stage5');
+        initBalloon();
+      }, 1600);
+    }
+  } else {
+    // mismatch
+    setTimeout(()=>{ memFirst.textContent=''; memSecond.textContent=''; memFirst.classList.remove('flipped'); memSecond.classList.remove('flipped'); memFirst=memSecond=null; memLock=false; }, 700);
+  }
+}
+
+/* -------------------------
+   BALLOON GAME
+   - spawn 2 balloons per second (interval 500ms)
+   - goal: pop 7 (increment on click)
+   - NO pop sound (per user), but we'll play chime on milestones and applause when finished
+   ------------------------- */
+let balloonInterval=null, balloonScore=0;
+const balloonStage = document.getElementById('balloonStage');
+
+function initBalloon(){
+  balloonScore=0; document.getElementById('balloonScore').textContent = balloonScore;
+  balloonStage.innerHTML='';
+  // start spawning 2/sec -> interval 500ms
+  let spawnCount=0;
+  balloonInterval = setInterval(()=> {
+    if(balloonScore >= 7){ clearInterval(balloonInterval); return; }
+    spawnBalloon();
+    spawnCount++;
+  }, 500);
+  // reset small gif
+  document.querySelector('#stage5 .gif').src = 'https://media.tenor.com/US6vByRqvIUAAAAM/balloon-float.gif';
+}
+
+function spawnBalloon(){
+  const b = document.createElement('div');
+  b.className = 'balloon';
+  // random x within 6% - 92% range
+  const left = 6 + Math.random()*84;
+  b.style.left = left + 'vw';
+  // random color
+  const hue = Math.floor(Math.random()*360);
+  b.style.background = `linear-gradient(180deg, hsl(${hue} 85% 70%), hsl(${(hue+30)%360} 70% 50%))`;
+  // give small emoji optionally
+  const emoji = ['🎈','✨','⭐','🎉'][Math.floor(Math.random()*4)];
+  b.textContent = emoji;
+  // random float duration 4.6 - 6.0s
+  const dur = (4.6 + Math.random()*1.4).toFixed(2);
+  b.style.animationDuration = dur + 's';
+  // click handler (no pop sound)
+  b.addEventListener('click', ()=> {
+    // small scale pop visual
+    b.style.transition = 'transform .18s ease, opacity .18s ease';
+    b.style.transform = 'scale(1.25)';
+    b.style.opacity = '0';
+    setTimeout(()=> { if(b.parentNode) b.remove(); }, 190);
+    balloonScore++;
+    document.getElementById('balloonScore').textContent = balloonScore;
+    // chime on milestone every 3 popped, applause on finish
+    if(balloonScore === 7){
+      clearInterval(balloonInterval);
+      // small delay then modal -> final
+      playApplause();
+      showModal('Wow! You popped 7 balloons!', 'Great job — final surprise is ready!', 'https://media.tenor.com/4fQkN3q6q5UAAAAi/confetti.gif', ()=> {
+        hideModal();
+        showStage('stageFinal');
+      }, 1500);
+    } else if(balloonScore % 3 === 0){
+      playChime();
+    } else {
+      // encourage small click sound (not pop)
+      playClick();
+    }
+  });
+  // remove if reaches top (animation end) - no score increment
+  b.addEventListener('animationend', ()=> { if(b.parentNode) b.remove(); });
+  balloonStage.appendChild(b);
+}
+
+/* balloon reset */
+document.getElementById('balloonReset').addEventListener('click', ()=> {
+  clearInterval(balloonInterval);
+  initBalloon();
+  playClick();
+});
+
+/* -------------------------
+   Modal helpers
+   ------------------------- */
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalText = document.getElementById('modalText');
+const modalGif = document.getElementById('modalGif');
+
+function showModal(title, text, gif, cb, delay=1400){
+  modalTitle.textContent = title;
+  modalText.textContent = text;
+  modalGif.src = gif;
+  modal.classList.add('show');
+  // optional playChime
+  playChime();
+  setTimeout(()=> {
+    if(typeof cb === 'function') cb();
+  }, delay);
+}
+
+function hideModal(){ modal.classList.remove('show'); }
+
+/* allow clicking modal to close early */
+modal.addEventListener('click', ()=> { hideModal(); });
+
+/* start silent until user interacts — resume on first gesture */
+window.addEventListener('click', function firstStart(){
+  // resume audio on first click/gesture
+  try{ ensureAudio(); if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }catch(e){}
+  // only run once
+  window.removeEventListener('click', firstStart);
+}, {once:true});
+
+/* Prevent accidental text selection during rapid clicks */
+document.addEventListener('selectstart', e=> e.preventDefault());
+</script>
+</body>
+</html>
